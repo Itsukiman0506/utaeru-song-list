@@ -94,6 +94,7 @@
       <input id="search" type="text" placeholder="タイトル・アーティスト・ジャンルで検索" oninput="renderTable()">
       <input type="file" accept=".csv" onchange="importCSV(event)">
       <button onclick="addSong()">＋ 曲を追加</button>
+      <button onclick="downloadCSV()">💾 バックアップ保存</button>
     </div>
     <table>
       <thead>
@@ -295,6 +296,25 @@
       saveSongs();
       renderTable();
       renderRanking();
+    }
+
+    
+    function downloadCSV() {
+      const headers = ["title", "artist", "genre", "memo"];
+      const rows = songs.map(song =>
+        headers.map(h => JSON.stringify(song[h] || "")).join(",")
+      );
+      const csvContent = [headers.join(","), ...rows].join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const today = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `${today}_utaeru_backup.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
 
     loadSongs();
