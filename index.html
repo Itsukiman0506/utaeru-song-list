@@ -1,125 +1,194 @@
 
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>歌える曲リスト（スプレッドシート＋投票機能）</title>
+  <title>歌える曲リスト（ランダム＆セットリスト付き）</title>
   <style>
-    body { font-family: sans-serif; background: #121212; color: white; padding: 1em; }
-    h1 { text-align: center; color: #1DB954; }
-    table { width: 100%; border-collapse: collapse; background: #1e1e1e; margin-top: 1em; }
-    th, td { padding: 0.6em; border-bottom: 1px solid #333; text-align: left; }
+    body { font-family: sans-serif; background: #121212; color: white; margin: 0; padding: 0; }
+    h1 { text-align: center; color: #1DB954; padding: 1em; margin: 0; }
+    #fixed-top {
+      position: sticky; top: 0; background: #121212; z-index: 100;
+      padding: 1em; border-bottom: 1px solid #333;
+    }
+    #search {
+      width: 100%; padding: 0.5em; font-size: 1em;
+      border-radius: 4px; border: none; margin-bottom: 1em;
+    }
+    table {
+      width: 100%; border-collapse: collapse;
+      background: #1e1e1e;
+    }
+    th, td {
+      padding: 0.6em; border-bottom: 1px solid #333;
+      text-align: left;
+    }
     th { background: #282828; }
     a { color: #1DB954; }
-    .status-area { margin-top: 2em; background: #1e1e1e; padding: 1em; border-radius: 8px; }
     button {
-      padding: 0.4em 1em; background: #1DB954; color: white; border: none;
-      border-radius: 4px; margin-right: 0.3em; cursor: pointer;
+      padding: 0.4em 1em; background: #1DB954; color: white;
+      border: none; border-radius: 4px; margin: 0.2em; cursor: pointer;
+    }
+    #alert {
+      background: #ff4444; color: white; padding: 1em;
+      display: none; border-radius: 6px; margin-bottom: 1em;
+    }
+    .scroll-area {
+      max-height: 300px; overflow-y: auto; padding: 1em;
     }
   </style>
 </head>
 <body>
   <h1>🎤 公開・歌える曲リスト</h1>
-  <table>
-    <thead>
-      <tr>
-        <th>タイトル</th><th>アーティスト</th><th>ジャンル</th>
-        <th>原曲リンク</th><th>票数</th><th>操作</th>
-      </tr>
-    </thead>
-    <tbody id="songTableBody"><tr><td colspan="6">読み込み中...</td></tr></tbody>
-  </table>
-
-  <div class="status-area">
-    <h3>🎖️ リクエストランキング</h3>
-    <ol id="rankingList"></ol>
-    <button onclick="resetVotes()">ランキングをリセット</button>
+  <div id="fixed-top">
+    <input id="search" placeholder="曲名・アーティスト・ジャンルで検索" oninput="renderTable()">
+    <div id="alert"></div>
+    <div>
+      <button onclick="toggleRequestLock()" id="lockButton">🔓 リクエスト受付：ON</button>
+      <button onclick="randomRequest()">🎲 ランダムリクエスト</button>
+    </div>
+    <div>
+      <h3>🎖️ リクエストランキング</h3>
+      <ol id="rankingList"></ol>
+      <button onclick="resetVotes()">ランキングをリセット</button>
+    </div>
+    <div>
+      <h3>🎙️ 今歌っている曲</h3>
+      <p id="nowSinging">（未設定）</p>
+    </div>
+    <div>
+      <h3>📅 本日のセットリスト</h3>
+      <ul id="setlist"></ul>
+    </div>
   </div>
 
-  <div class="status-area">
-    <h3>🗳️ リクエスト履歴</h3>
-    <ul id="requestHistory"></ul>
-    <button onclick="clearRequests()">履歴をリセット</button>
+  <div class="scroll-area">
+    <table>
+      <thead><tr><th>タイトル</th><th>アーティスト</th><th>ジャンル</th><th>原曲リンク</th><th>票数</th><th>操作</th></tr></thead>
+      <tbody id="songTableBody"><tr><td colspan="6">読み込み中...</td></tr></tbody>
+    </table>
   </div>
 
-  <div class="status-area">
-    <h3>🎙️ 今歌っている曲</h3>
-    <p id="nowSinging">（未設定）</p>
+  <div class="scroll-area">
+    <h3 style="margin-left:1em;">🗳️ リクエスト履歴</h3>
+    <ul id="requestHistory" style="margin-left:1em;"></ul>
+    <button style="margin-left:1em;" onclick="clearRequests()">履歴をリセット</button>
   </div>
 
-  <script>
-    localStorage.removeItem("songs");
-    const csvUrl = "https://docs.google.com/spreadsheets/d/12vltAXFRupe5x6nRPo32GMFqInpSiF8bWrV7dB0YTwE/gviz/tq?tqx=out:csv";
-    let songs = [];
+<script>
+localStorage.removeItem("songs");
+const csvUrl = "https://docs.google.com/spreadsheets/d/12vltAXFRupe5x6nRPo32GMFqInpSiF8bWrV7dB0YTwE/gviz/tq?tqx=out:csv";
+let songs = [];
+let requestLocked = false;
 
-    async function loadSheetData() {
-      const response = await fetch(csvUrl);
-      const text = await response.text();
-      const rows = text.trim().split(/\r?\n/).map(row => row.split(','));
-      songs = rows.slice(1).map(cols => {
-        const [title, artist, genre, memo] = cols.map(c => c.replace(/^"|"$/g, ''));
-        return { title, artist, genre, memo, votes: 0 };
-      });
-      renderTable();
-      renderRanking();
+async function loadSheetData() {
+  const response = await fetch(csvUrl);
+  const text = await response.text();
+  const rows = text.trim().split(/\r?\n/).map(r => r.split(','));
+  const seen = new Set();
+  let duplicate = false;
+
+  songs = rows.slice(1).map(cols => {
+    const [title, artist, genre, memo] = cols.map(c => c.replace(/^"|"$/g, ''));
+    const key = title + "|" + artist;
+    if (seen.has(key)) duplicate = true;
+    seen.add(key);
+    return { title, artist, genre, memo, votes: 0 };
+  });
+
+  if (duplicate) {
+    const alertBox = document.getElementById("alert");
+    alertBox.style.display = "block";
+    alertBox.textContent = "⚠️ アーティストとタイトルが同じ曲が複数登録されています";
+  }
+
+  renderTable();
+  renderRanking();
+}
+
+function renderTable() {
+  const filter = document.getElementById("search").value.toLowerCase();
+  const tbody = document.getElementById("songTableBody");
+  tbody.innerHTML = "";
+  songs.forEach((s, i) => {
+    if (
+      s.title.toLowerCase().includes(filter) ||
+      s.artist.toLowerCase().includes(filter) ||
+      s.genre.toLowerCase().includes(filter)
+    ) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td data-label="タイトル">${s.title}</td>
+        <td data-label="アーティスト">${s.artist}</td>
+        <td data-label="ジャンル">${s.genre}</td>
+        <td data-label="原曲リンク"><a href="${s.memo}" target="_blank">原曲</a></td>
+        <td data-label="票数">${s.votes}</td>
+        <td data-label="操作">
+          <button onclick="voteSong(${i})">リクエスト</button>
+          <button onclick="setNowSinging('${s.title}')">今歌う</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
     }
+  });
+}
 
-    function renderTable() {
-      const tbody = document.getElementById("songTableBody");
-      tbody.innerHTML = "";
-      songs.forEach(function(song, index) {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${song.title}</td>
-          <td>${song.artist}</td>
-          <td>${song.genre}</td>
-          <td><a href="${song.memo}" target="_blank">原曲</a></td>
-          <td>${song.votes}</td>
-          <td>
-            <button onclick="voteSong({i})">リクエスト</button>
-            <button onclick="setNowSinging('${song.title}')">今歌う</button>
-          </td>
-        `.replace(/{i}/, index);
-        tbody.appendChild(tr);
-      });
-    }
+function voteSong(i) {
+  if (requestLocked) {
+    alert("リクエスト受付は停止中です");
+    return;
+  }
+  songs[i].votes++;
+  const li = document.createElement("li");
+  li.textContent = songs[i].title;
+  document.getElementById("requestHistory").prepend(li);
+  renderTable();
+  renderRanking();
+}
 
-    function voteSong(index) {
-      songs[index].votes++;
-      const li = document.createElement("li");
-      li.textContent = songs[index].title;
-      document.getElementById("requestHistory").prepend(li);
-      renderTable();
-      renderRanking();
-    }
+function setNowSinging(title) {
+  document.getElementById("nowSinging").textContent = title;
+  const li = document.createElement("li");
+  li.textContent = title;
+  document.getElementById("setlist").appendChild(li);
+}
 
-    function renderRanking() {
-      const list = document.getElementById("rankingList");
-      const ranked = [...songs].filter(s => s.votes > 0).sort((a, b) => b.votes - a.votes);
-      list.innerHTML = "";
-      ranked.forEach(song => {
-        const li = document.createElement("li");
-        li.textContent = `${song.title}（${song.artist}） - ${song.votes}票`;
-        list.appendChild(li);
-      });
-    }
+function renderRanking() {
+  const list = document.getElementById("rankingList");
+  const ranked = [...songs].filter(s => s.votes > 0).sort((a,b) => b.votes - a.votes);
+  list.innerHTML = "";
+  ranked.forEach(s => {
+    const li = document.createElement("li");
+    li.textContent = `${s.title}（${s.artist}） - ${s.votes}票`;
+    list.appendChild(li);
+  });
+}
 
-    function setNowSinging(title) {
-      document.getElementById("nowSinging").textContent = title;
-    }
+function resetVotes() {
+  songs.forEach(s => s.votes = 0);
+  renderTable();
+  renderRanking();
+}
 
-    function resetVotes() {
-      songs.forEach(s => s.votes = 0);
-      renderTable();
-      renderRanking();
-    }
+function clearRequests() {
+  document.getElementById("requestHistory").innerHTML = "";
+}
 
-    function clearRequests() {
-      document.getElementById("requestHistory").innerHTML = "";
-    }
+function toggleRequestLock() {
+  requestLocked = !requestLocked;
+  const btn = document.getElementById("lockButton");
+  btn.textContent = requestLocked ? "🔒 リクエスト受付：OFF" : "🔓 リクエスト受付：ON";
+}
 
-    loadSheetData();
-  </script>
+function randomRequest() {
+  if (songs.length === 0) return;
+  const index = Math.floor(Math.random() * songs.length);
+  voteSong(index);
+}
+
+loadSheetData();
+</script>
 </body>
 </html>
