@@ -2,239 +2,115 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🎵 歌える曲リスト - Spotify風 (拡張版)</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>歌える曲リスト（スプレッドシート＋投票機能）</title>
   <style>
-    * { box-sizing: border-box; }
-    body {
-      font-family: 'Inter', sans-serif;
-      margin: 0;
-      padding: 0;
-      background-color: #121212;
-      color: #FFFFFF;
+    body { font-family: sans-serif; background: #121212; color: white; padding: 1em; }
+    h1 { text-align: center; color: #1DB954; }
+    table { width: 100%; border-collapse: collapse; background: #1e1e1e; margin-top: 1em; }
+    th, td { padding: 0.6em; border-bottom: 1px solid #333; text-align: left; }
+    th { background: #282828; }
+    a { color: #1DB954; }
+    .status-area { margin-top: 2em; background: #1e1e1e; padding: 1em; border-radius: 8px; }
+    button {
+      padding: 0.4em 1em; background: #1DB954; color: white; border: none;
+      border-radius: 4px; margin-right: 0.3em; cursor: pointer;
     }
-    header {
-      background-color: #1DB954;
-      padding: 1em;
-      text-align: center;
-      font-size: 1.5em;
-      font-weight: bold;
-      color: #fff;
-    }
-    .container {
-      padding: 1em;
-      max-width: 1000px;
-      margin: 0 auto;
-    }
-    .controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5em;
-      margin-bottom: 1em;
-    }
-    .controls input[type="text"], .controls input[type="file"] {
-      padding: 0.6em;
-      background: #2a2a2a;
-      border: none;
-      border-radius: 4px;
-      color: #fff;
-      flex-grow: 1;
-    }
-    .controls button {
-      background-color: #1DB954;
-      border: none;
-      color: #fff;
-      padding: 0.6em 1em;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .controls button:hover {
-      background-color: #17a74a;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: #1e1e1e;
-      border-radius: 6px;
-      overflow: hidden;
-    }
-    th, td {
-      padding: 1em;
-      text-align: left;
-      border-bottom: 1px solid #2a2a2a;
-      cursor: default;
-    }
-    th.sortable:hover {
-      color: #1DB954;
-      cursor: pointer;
-    }
-    th.sorted-asc::after { content: " 🔼"; }
-    th.sorted-desc::after { content: " 🔽"; }
-    th {
-      background-color: #282828;
-      font-weight: bold;
-    }
-    a { color: #1DB954; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    .status-area {
-      margin-top: 1em;
-      padding: 1em;
-      background-color: #1e1e1e;
-      border-radius: 6px;
-    }
-    .status-area h3 { margin-top: 0; }
   </style>
 </head>
 <body>
-  <header>🎧 歌える曲リスト</header>
-  <div class="container">
-    <div class="controls">
-      <input id="search" type="text" placeholder="タイトル・アーティスト・ジャンルで検索" oninput="renderTable()">
-      <input type="file" accept=".csv" onchange="importCSV(event)">
-      <button onclick="addSong()">＋ 曲を追加</button>
-      <button onclick="downloadCSV()">💾 バックアップ保存</button>
-    </div>
-    <table>
-      <thead>
-        <tr>
-          <th class="sortable" onclick="sortTable('title')">タイトル</th>
-          <th class="sortable" onclick="sortTable('artist')">アーティスト</th>
-          <th class="sortable" onclick="sortTable('genre')">ジャンル</th>
-          <th>票数</th><th>原曲リンク</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody id="songList"></tbody>
-    </table>
+  <h1>🎤 公開・歌える曲リスト</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>タイトル</th><th>アーティスト</th><th>ジャンル</th>
+        <th>原曲リンク</th><th>票数</th><th>操作</th>
+      </tr>
+    </thead>
+    <tbody id="songTableBody"><tr><td colspan="6">読み込み中...</td></tr></tbody>
+  </table>
 
-    <div class="status-area">
-      <h3>🎤 リクエスト履歴</h3>
-      <ul id="requestHistory"></ul>
-      <button onclick="clearRequests()">リクエスト履歴をリセット</button>
-      <h3>🎙️ 現在歌唱中</h3>
-      <p id="nowSinging">（未設定）</p>
-    
-    <div class="status-area">
-      <h3>🏆 リクエストランキング</h3>
-      <ol id="rankingList"></ol>
-      <button onclick="resetVotes()">ランキングをリセット</button>
-    </div>
+  <div class="status-area">
+    <h3>🎖️ リクエストランキング</h3>
+    <ol id="rankingList"></ol>
+    <button onclick="resetVotes()">ランキングをリセット</button>
+  </div>
 
+  <div class="status-area">
+    <h3>🗳️ リクエスト履歴</h3>
+    <ul id="requestHistory"></ul>
+    <button onclick="clearRequests()">履歴をリセット</button>
+  </div>
+
+  <div class="status-area">
+    <h3>🎙️ 今歌っている曲</h3>
+    <p id="nowSinging">（未設定）</p>
   </div>
 
   <script>
-    let songs = [
-      { title: "Lemon", artist: "米津玄師", genre: "J-POP", memo: "https://youtu.be/SX_ViT4Ra7k", votes: 0 },
-      { title: "シャルル", artist: "バルーン", genre: "ボカロ", memo: "https://youtu.be/TA5OFS_xX0c", votes: 0 }
-    ];
-    let sortField = null;
-    let sortDirection = 1;
+    localStorage.removeItem("songs");
+    const csvUrl = "https://docs.google.com/spreadsheets/d/12vltAXFRupe5x6nRPo32GMFqInpSiF8bWrV7dB0YTwE/gviz/tq?tqx=out:csv";
+    let songs = [];
+
+    async function loadSheetData() {
+      const response = await fetch(csvUrl);
+      const text = await response.text();
+      const rows = text.trim().split(/\r?\n/).map(row => row.split(','));
+      songs = rows.slice(1).map(cols => {
+        const [title, artist, genre, memo] = cols.map(c => c.replace(/^"|"$/g, ''));
+        return { title, artist, genre, memo, votes: 0 };
+      });
+      renderTable();
+      renderRanking();
+    }
 
     function renderTable() {
-      const filter = document.getElementById("search").value.toLowerCase();
-      const tbody = document.getElementById("songList");
+      const tbody = document.getElementById("songTableBody");
       tbody.innerHTML = "";
-
-      const sortedSongs = [...songs];
-      if (sortField) {
-        sortedSongs.sort((a, b) => {
-          const fa = a[sortField].toLowerCase();
-          const fb = b[sortField].toLowerCase();
-          return fa.localeCompare(fb) * sortDirection;
-        });
-      }
-
-      sortedSongs.forEach((song, index) => {
-        if ([song.title, song.artist, song.genre].some(field => field.toLowerCase().includes(filter))) {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${song.title}</td>
-            <td>${song.artist}</td>
-            <td>${song.genre}</td>
-            <td>${song.votes || 0}票</td><td><a href="${song.memo}" target="_blank">原曲</a></td>
-            <td>
-              <button onclick="editSong(${index})">編集</button>
-              <button onclick="deleteSong(${index})">削除</button>
-              <button onclick="requestSong('${song.title}')">リクエスト</button>
-              <button onclick="setNowSinging('${song.title}')">今歌う</button>
-            </td>
-          `;
-          tbody.appendChild(tr);
-        }
-      });
-
-      document.querySelectorAll('th.sortable').forEach(th => {
-        th.classList.remove('sorted-asc', 'sorted-desc');
-        if (th.textContent === getSortLabel(sortField)) {
-          th.classList.add(sortDirection === 1 ? 'sorted-asc' : 'sorted-desc');
-        }
+      songs.forEach(function(song, index) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${song.title}</td>
+          <td>${song.artist}</td>
+          <td>${song.genre}</td>
+          <td><a href="${song.memo}" target="_blank">原曲</a></td>
+          <td>${song.votes}</td>
+          <td>
+            <button onclick="voteSong({i})">リクエスト</button>
+            <button onclick="setNowSinging('${song.title}')">今歌う</button>
+          </td>
+        `.replace(/{i}/, index);
+        tbody.appendChild(tr);
       });
     }
 
-    function getSortLabel(field) {
-      if (field === 'title') return 'タイトル';
-      if (field === 'artist') return 'アーティスト';
-      if (field === 'genre') return 'ジャンル';
-      return '';
-    }
-
-    function sortTable(field) {
-      if (sortField === field) {
-        sortDirection *= -1;
-      } else {
-        sortField = field;
-        sortDirection = 1;
-      }
+    function voteSong(index) {
+      songs[index].votes++;
+      const li = document.createElement("li");
+      li.textContent = songs[index].title;
+      document.getElementById("requestHistory").prepend(li);
       renderTable();
-    renderRanking();
+      renderRanking();
     }
 
-    function addSong() {
-      const title = prompt("曲のタイトルを入力してください");
-      const artist = prompt("アーティスト名を入力してください");
-      const genre = prompt("ジャンルを入力してください");
-      const memo = prompt("原曲のURLなどを入力してください");
-      if (title && artist) {
-        songs.push({ title, artist, genre, memo, votes: 0 });
-        saveSongs();
-        renderTable();
-    renderRanking();
-      }
+    function renderRanking() {
+      const list = document.getElementById("rankingList");
+      const ranked = [...songs].filter(s => s.votes > 0).sort((a, b) => b.votes - a.votes);
+      list.innerHTML = "";
+      ranked.forEach(song => {
+        const li = document.createElement("li");
+        li.textContent = `${song.title}（${song.artist}） - ${song.votes}票`;
+        list.appendChild(li);
+      });
     }
 
-    function editSong(index) {
-      const song = songs[index];
-      const title = prompt("タイトルを編集", song.title);
-      const artist = prompt("アーティスト名を編集", song.artist);
-      const genre = prompt("ジャンルを編集", song.genre);
-      const memo = prompt("メモを編集", song.memo);
-      if (title && artist) {
-        songs[index] = { ...songs[index], title, artist, genre, memo };
-        saveSongs();
-        renderTable();
-    renderRanking();
-      }
+    function setNowSinging(title) {
+      document.getElementById("nowSinging").textContent = title;
     }
 
-    function deleteSong(index) {
-      if (confirm("この曲を削除しますか？")) {
-        songs.splice(index, 1);
-        saveSongs();
-        renderTable();
-    renderRanking();
-      }
-    }
-
-    function requestSong(title) {
-      const song = songs.find(s => s.title === title);
-      if (song) song.votes = (song.votes || 0) + 1;
-      saveSongs();
-      const list = document.getElementById("requestHistory");
-      const item = document.createElement("li");
-      item.textContent = title;
-      list.insertBefore(item, list.firstChild);
+    function resetVotes() {
+      songs.forEach(s => s.votes = 0);
       renderTable();
       renderRanking();
     }
@@ -243,83 +119,7 @@
       document.getElementById("requestHistory").innerHTML = "";
     }
 
-    function setNowSinging(title) {
-      document.getElementById("nowSinging").textContent = title;
-    }
-
-    function saveSongs() {
-      localStorage.setItem("songs", JSON.stringify(songs));
-    }
-
-    function loadSongs() {
-      const saved = localStorage.getItem("songs");
-      if (saved) {
-        songs = JSON.parse(saved);
-        songs.forEach(song => { if (song.votes === undefined) song.votes = 0; });
-      }
-    }
-
-    function importCSV(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const lines = e.target.result.split(/\r?\n/);
-        for (let line of lines) {
-          const [title, artist, genre, memo] = line.split(',');
-          if (title && artist) songs.push({ title, artist, genre, memo, votes: 0 });
-        }
-        saveSongs();
-        renderTable();
-    renderRanking();
-      };
-      reader.readAsText(file, 'UTF-8');
-    }
-
-    
-    function renderRanking() {
-      const rankingList = document.getElementById("rankingList");
-      if (!rankingList) return;
-      const sorted = [...songs].sort((a, b) => (b.votes || 0) - (a.votes || 0));
-      rankingList.innerHTML = "";
-      sorted.forEach(song => {
-        if ((song.votes || 0) > 0) {
-          const li = document.createElement("li");
-          li.textContent = `${song.title}（${song.artist}） - ${song.votes}票`;
-          rankingList.appendChild(li);
-        }
-      });
-    }
-
-    function resetVotes() {
-      songs.forEach(song => song.votes = 0);
-      saveSongs();
-      renderTable();
-      renderRanking();
-    }
-
-    
-    function downloadCSV() {
-      const headers = ["title", "artist", "genre", "memo"];
-      const rows = songs.map(song =>
-        headers.map(h => JSON.stringify(song[h] || "")).join(",")
-      );
-      const csvContent = [headers.join(","), ...rows].join("\n");
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      const today = new Date().toISOString().slice(0, 10);
-      a.href = url;
-      a.download = `${today}_utaeru_backup.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
-
-    loadSongs();
-    renderTable();
-    renderRanking();
+    loadSheetData();
   </script>
 </body>
 </html>
