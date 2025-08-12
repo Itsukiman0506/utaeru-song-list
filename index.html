@@ -1,11 +1,12 @@
 
 
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>歌える曲リスト（全機能＋YouTubeプレイヤー）</title>
+  <title>歌える曲リスト（並び替え付き最終版）</title>
   <style>
     body { font-family: sans-serif; background: #121212; color: white; margin: 0; padding: 0; }
     h1 { text-align: center; color: #1DB954; padding: 1em; margin: 0; }
@@ -25,6 +26,11 @@
       padding: 0.6em; border-bottom: 1px solid #333;
       text-align: left;
       vertical-align: top;
+      cursor: default;
+    }
+    th.sortable:hover {
+      cursor: pointer;
+      color: #1DB954;
     }
     th { background: #282828; }
     a { color: #1DB954; }
@@ -40,7 +46,6 @@
       width: 100%; max-width: 400px; height: 225px;
       border: none; border-radius: 6px;
     }
-    #rankingList, #nowSinging { margin: 0.5em 0; }
   </style>
 </head>
 <body>
@@ -56,7 +61,16 @@
 
   <div class="scroll-area">
     <table>
-      <thead><tr><th>タイトル</th><th>アーティスト</th><th>ジャンル</th><th>原曲リンク</th><th>票数</th><th>操作</th></tr></thead>
+      <thead>
+        <tr>
+          <th class="sortable" onclick="sortBy('title')">タイトル</th>
+          <th class="sortable" onclick="sortBy('artist')">アーティスト</th>
+          <th class="sortable" onclick="sortBy('genre')">ジャンル</th>
+          <th>原曲リンク</th>
+          <th>票数</th>
+          <th>操作</th>
+        </tr>
+      </thead>
       <tbody id="songTableBody"><tr><td colspan="6">読み込み中...</td></tr></tbody>
     </table>
   </div>
@@ -72,6 +86,7 @@ localStorage.removeItem("songs");
 const csvUrl = "https://docs.google.com/spreadsheets/d/12vltAXFRupe5x6nRPo32GMFqInpSiF8bWrV7dB0YTwE/gviz/tq?tqx=out:csv";
 let songs = [];
 let requestLocked = false;
+let currentSort = { key: '', asc: true };
 
 function convertToEmbedUrl(url) {
   if (!url) return "";
@@ -100,12 +115,13 @@ function renderTable() {
   const filter = document.getElementById("search").value.toLowerCase();
   const tbody = document.getElementById("songTableBody");
   tbody.innerHTML = "";
-  songs.forEach((s, i) => {
-    if (
+  songs
+    .filter(s =>
       s.title.toLowerCase().includes(filter) ||
       s.artist.toLowerCase().includes(filter) ||
       s.genre.toLowerCase().includes(filter)
-    ) {
+    )
+    .forEach((s, i) => {
       const embedUrl = convertToEmbedUrl(s.memo);
       const embedID = "yt" + i;
       const tr = document.createElement("tr");
@@ -126,8 +142,18 @@ function renderTable() {
         </td>
       `;
       tbody.appendChild(tr);
-    }
+    });
+}
+
+function sortBy(key) {
+  currentSort.asc = currentSort.key === key ? !currentSort.asc : true;
+  currentSort.key = key;
+  songs.sort((a, b) => {
+    const valA = a[key].toLowerCase();
+    const valB = b[key].toLowerCase();
+    return currentSort.asc ? valA.localeCompare(valB) : valB.localeCompare(valA);
   });
+  renderTable();
 }
 
 function togglePlayer(id) {
