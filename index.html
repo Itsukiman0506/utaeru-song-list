@@ -233,7 +233,7 @@
       div.innerHTML = `<span>${s.artist}</span>${s.title} をリクエスト！`;
       document.getElementById("requestHistory").appendChild(div);
       updateRanking();
-    }</span>${songs[i].title} をリクエスト！`;
+    </span>${s.title} をリクエスト！`;
       document.getElementById("requestHistory").appendChild(div);
     }
 
@@ -303,7 +303,7 @@ function setNow(title){
           li.textContent = `${row.title}（${row.artist}） - ${row.count}票`;
           list.appendChild(li);
         });
-    }（${s.artist}） - ${s.votes}票`;
+    }`;
         list.appendChild(li);
       });
     }
