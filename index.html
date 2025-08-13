@@ -81,10 +81,9 @@
 
 <script>
   /* ===== 設定 ===== */
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbwx_0x7nY6i2JOjK8lxxebyPM7ZgZ53ABhdg4IQeAvCNtUDXiU_HfR7Bwlt1veGV-kv/exec";
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbwx_0x7nY6i2JOjK8lxxebyPM7ZgZ53ABhdg4IQeAvCNtUDXiU_HfR7Bwlt1veGV-kv/exec";            // あなたの WebアプリURL（/exec）
+  const GAS_SONGS_URL = GAS_URL + "?mode=songs"; // 曲リストJSONを返すエンドポイント（GASで追加）
   const POLL_MS = 10000;
-  const SHEET_CSV_URL_PRIMARY = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSrwBTN0oG3_ELn7Uglv-v7MpLdhYWkRsRg_r01UIesLHPZQlAmPJPbPYcVabE9Hh44eNdnRQBzdQym/pub?gid=0&single=true&output=csv";
-  const SHEET_CSV_URL_FALLBACK = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSrwBTN0oG3_ELn7Uglv-v7MpLdhYWkRsRg_r01UIesLHPZQlAmPJPbPYcVabE9Hh44eNdnRQBzdQym/pub?output=csv";
 
   /* ===== 状態 ===== */
   let songs = [];
@@ -104,50 +103,24 @@
     return id ? `https://www.youtube.com/embed/${id}` : "";
   };
 
-  /* ===== CSV 安全パース ===== */
-  function parseCSV(str) {
-    const rows = [];
-    let cur = "", row = [], q = false;
-    for (let i=0;i<str.length;i++) {
-      const ch = str[i];
-      if (ch === '"') {
-        if (q && str[i+1] === '"') { cur += '"'; i++; }
-        else q = !q;
-      } else if (ch === ',' && !q) {
-        row.push(cur); cur = "";
-      } else if ((ch === '\\n' || ch === '\\r') && !q) {
-        if (cur || row.length) row.push(cur);
-        if (row.length) rows.push(row);
-        cur = ""; row = [];
-      } else {
-        cur += ch;
-      }
-    }
-    if (cur || row.length) row.push(cur);
-    if (row.length) rows.push(row);
-    return rows;
-  }
-
-  /* ===== 曲リスト読込 ===== */
-  async function loadSongsFromSheet() {
+  /* ===== 曲リスト読込（GASから） ===== */
+  async function loadSongsFromGAS() {
     try {
-      let res = await fetch(SHEET_CSV_URL_PRIMARY, { cache:"no-store" });
-      let text = await res.text();
-      if (text.trim().startsWith("<")) {
-        console.warn("Primary CSV returned HTML. Trying fallback...");
-        res = await fetch(SHEET_CSV_URL_FALLBACK, { cache:"no-store" });
-        text = await res.text();
-      }
-      if (text.trim().startsWith("<")) {
-        console.error("CSV取得に失敗（HTMLが返却）:", text.substring(0,200));
+      const res = await fetch(GAS_SONGS_URL, { cache:"no-store" });
+      const data = await res.json();
+      if (!Array.isArray(data.rows)) {
+        console.error("GAS songs response invalid:", data);
         return;
       }
-      const rows = parseCSV(text);
-      songs = rows.slice(1).map(r => ({ title:(r[0]||"").trim(), artist:(r[1]||"").trim(), genre:(r[2]||"").trim(), memo:(r[3]||"").trim() }))
-                    .filter(s => s.title);
+      songs = data.rows.map(r => ({
+        title: (r.title||"").trim(),
+        artist: (r.artist||"").trim(),
+        genre: (r.genre||"").trim(),
+        memo: (r.memo||"").trim()
+      })).filter(s => s.title);
       render();
     } catch (e) {
-      console.error("CSV読み込みエラー:", e);
+      console.error("GAS songs fetch error:", e);
     }
   }
 
@@ -272,7 +245,7 @@
 
   /* ===== 起動 ===== */
   (async () => {
-    await loadSongsFromSheet();
+    await loadSongsFromGAS();
     await updateRanking();
     setInterval(updateRanking, POLL_MS);
   })();
