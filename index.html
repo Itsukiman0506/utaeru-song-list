@@ -5,10 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Itsuki Uta-Net</title>
   <style>
-    /* ========== Base ========== */
     body {
       margin: 0;
-      font-family: "Helvetica Neue", system-ui, -apple-system, Segoe UI, Roboto, Arial, "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif;
+      font-family: "Helvetica Neue", sans-serif;
       background: #121212;
       color: #fff;
       display: flex;
@@ -17,11 +16,11 @@
     }
     header {
       background: #1DB954;
-      color: #fff;
+      color: white;
       padding: 1em;
       text-align: center;
       font-size: 1.5em;
-      font-weight: 700;
+      font-weight: bold;
       flex-shrink: 0;
     }
     .top-bar {
@@ -29,83 +28,58 @@
       justify-content: space-between;
       align-items: center;
       background: #1e1e1e;
-      padding: 0.6em 1em;
+      padding: 0.5em 1em;
       position: sticky;
       top: 0;
       z-index: 10;
-      gap: 0.6em;
     }
-    .top-bar .controls { display: flex; flex-wrap: wrap; gap: 0.4em; align-items: center; }
-    .top-bar button {
-      background: #1DB954;
-      color: #fff;
-      border: none;
-      padding: 0.5em 0.9em;
-      border-radius: 10px;
-      cursor: pointer;
-      font-size: 0.95em;
-    }
-    .top-bar button:hover { filter: brightness(1.05); }
-
     main {
       display: flex;
       flex: 1;
-      overflow: hidden; /* セクション分割スクロール */
-      gap: 0;
+      overflow: hidden;
     }
     .left, .right {
       width: 50%;
       padding: 1em;
       box-sizing: border-box;
-      overflow-y: auto; /* 分割スクロール */
+      overflow-y: auto;
     }
-
-    input[type="text"] {
+    input {
       width: 100%;
-      padding: 0.6em;
+      padding: 0.5em;
       background: #2a2a2a;
-      color: #fff;
+      color: white;
       border: none;
-      border-radius: 10px;
-      margin-bottom: 0.6em;
+      border-radius: 6px;
+      margin-bottom: 0.5em;
     }
-
+    button {
+      background: #1DB954;
+      color: white;
+      border: none;
+      padding: 0.4em 0.8em;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 0.2em;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
-      table-layout: fixed;
     }
     th, td {
-      padding: 0.6em;
+      padding: 0.5em;
       border-bottom: 1px solid #333;
-      vertical-align: top;
-      word-break: break-word;
     }
     th {
       background: #282828;
-      cursor: pointer;         /* 列クリックで並び替え */
-      position: sticky; top: 0; z-index: 1;
-    }
-    td .btns { display: flex; flex-wrap: wrap; gap: 0.3em; }
-    .btns button {
-      background: #1DB954;
-      color: #fff;
-      border: none;
-      padding: 0.45em 0.7em;
-      border-radius: 8px;
       cursor: pointer;
-      font-size: 0.9em;
     }
-
     iframe {
       width: 100%;
-      height: 220px;
+      height: 200px;
       margin-top: 0.5em;
       border: none;
-      border-radius: 8px;
     }
-
-    /* ========== LINE風 吹き出し（履歴のみ） ========== */
     .bubble {
       max-width: 80%;
       padding: 0.8em 1em;
@@ -113,48 +87,39 @@
       margin: 0.4em 0;
       word-break: break-word;
       font-size: 0.95em;
-      line-height: 1.45;
-      box-shadow: 0 2px 4px rgba(0,0,0,.15);
     }
-    .bubble.left  { background: #fff;    color: #000; margin-right: auto; }
-    .bubble.right { background: #dcf8c6; color: #000; margin-left:  auto; }
+    .bubble.left {
+      background: white;
+      color: black;
+      margin-right: auto;
+    }
+    .bubble.right {
+      background: #dcf8c6;
+      color: black;
+      margin-left: auto;
+    }
     .bubble span {
       display: block;
-      font-weight: 700;
-      margin-bottom: 0.25em;
+      font-weight: bold;
+      margin-bottom: 0.3em;
       color: #333;
-    }
-
-    /* ========== Responsive (スマホ最適化) ========== */
-    @media (max-width: 768px) {
-      header { font-size: 1.25em; }
-      .top-bar { flex-direction: column; align-items: flex-start; }
-      .top-bar .controls { width: 100%; }
-      main { flex-direction: column; }
-      .left, .right { width: 100%; max-height: 45vh; } /* 上下2段に分割スクロール */
-      table, th, td { font-size: 0.95em; }
-      .btns button { font-size: 1rem; }
-      .bubble { max-width: 95%; font-size: 1em; }
-      iframe { height: 190px; }
     }
   </style>
 </head>
 <body>
   <header>Itsuki Uta-Net</header>
-
-  <!-- 上部固定：操作パネル＆「今歌ってる曲」 -->
   <div class="top-bar">
-    <div class="controls">
+    <div>
       <button onclick="toggleRequestLock()" id="lockBtn">🔓 リクエスト受付：ON</button>
       <button onclick="randomRequest()">🎲 ランダム</button>
     </div>
-    <div><strong>🎙️ 今歌っている曲:</strong> <span id="nowSinging">(未設定)</span></div>
+    <div>
+      <strong>🎙️ 今歌っている曲:</strong> <span id="nowSinging">(未設定)</span>
+    </div>
   </div>
-
   <main>
-    <!-- 左：曲リスト（検索＋表＋原曲埋め込み） -->
     <div class="left">
-      <input id="search" type="text" placeholder="曲名・アーティスト・ジャンルで検索" oninput="render()">
+      <input id="search" placeholder="曲名・アーティスト・ジャンルで検索" oninput="render()">
       <table>
         <thead>
           <tr>
@@ -168,245 +133,162 @@
         <tbody id="songList"></tbody>
       </table>
     </div>
-
-    <!-- 右：ランキング・セットリスト・リクエスト履歴 -->
     <div class="right">
       <h3>📈 リクエストランキング</h3>
       <ol id="rankingList"></ol>
       <button onclick="resetVotes()">ランキングをリセット</button>
-
       <h3>📅 本日のセットリスト</h3>
       <ul id="setlist"></ul>
-
       <h3>🗨️ リクエスト履歴</h3>
       <div id="requestHistory"></div>
       <button onclick="clearRequests()">履歴をリセット</button>
     </div>
   </main>
-
   <script>
-const GAS_URL = "https://script.google.com/macros/s/ttps://script.google.com/macros/s/AKfycbwx_0x7nY6i2JOjK8lxxebyPM7ZgZ53ABhdg4IQeAvCNtUDXiU_HfR7Bwlt1veGV-kv/exec";
-const POLL_MS = 10000; // 10秒ごとにランキング更新（お好みで）
-    /* ====== 設定 ====== */
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbwx_0x7nY6i2JOjK8lxxebyPM7ZgZ53ABhdg4IQeAvCNtUDXiU_HfR7Bwlt1veGV-kv/exec";
+    const POLL_MS = 10000;
+
     const sheetURL = "https://docs.google.com/spreadsheets/d/12vltAXFRupe5x6nRPo32GMFqInpSiF8bWrV7dB0YTwE/gviz/tq?tqx=out:csv";
+    let songs = [], requestLocked = false, sortKey = "", sortAsc = true;
 
-    /* ====== 状態 ====== */
-    let songs = [];
-    let requestLocked = false;
-    let sortKey = "";    // 'title' | 'artist' | 'genre'
-    let sortAsc = true;  // true:昇順 / false:降順
-
-    /* ====== ヘルパ ====== */
     function embedURL(url){
       if(!url) return "";
-      const id = url.includes("youtu.be/")
-        ? url.split("youtu.be/")[1].split(/[?&]/)[0]
-        : (url.includes("watch?v=") ? url.split("watch?v=")[1].split("&")[0] : "");
+      let id = url.includes("youtu.be/") ? url.split("youtu.be/")[1]
+        : url.includes("watch?v=") ? url.split("watch?v=")[1].split("&")[0] : "";
       return id ? `https://www.youtube.com/embed/${id}` : "";
     }
 
-    /* ====== 初期ロード ====== */
     async function load() {
-      try {
-        const res = await fetch(sheetURL, { cache: "no-store" });
-        const text = await res.text();
-        const rows = text.trim().split(/\r?\n/).map(r => r.split(','));
-
-        // 1行目ヘッダをスキップ、各列を取り出し
-        songs = rows.slice(1).map(r => {
-          const [title, artist, genre, memo] = r.map(c => c.replace(/^"|"$/g, ''));
-          return { title: title || "", artist: artist || "", genre: genre || "", memo: memo || "", votes: 0 };
-        });
-
-        render();
-        updateRanking();
-      } catch (e) {
-        console.error("シート読み込み失敗:", e);
-      }
+      const res = await fetch(sheetURL);
+      const text = await res.text();
+      const rows = text.trim().split(/\r?\n/).map(r => r.split(','));
+      songs = rows.slice(1).map(r => {
+        const [title, artist, genre, memo] = r.map(c => c.replace(/^"|"$/g, ''));
+        return { title, artist, genre, memo, votes: 0 };
+      });
+      render(); updateRanking();
     }
 
-    /* ====== レンダリング（曲リスト） ====== */
     function render(){
-      const filter = (document.getElementById("search").value || "").toLowerCase();
+      const filter = document.getElementById("search").value.toLowerCase();
       const tbody = document.getElementById("songList");
       tbody.innerHTML = "";
-
       let list = songs.filter(s =>
         s.title.toLowerCase().includes(filter) ||
         s.artist.toLowerCase().includes(filter) ||
         s.genre.toLowerCase().includes(filter)
       );
-
       if (sortKey) {
         list.sort((a, b) => {
-          const aVal = (a[sortKey] || "").toLowerCase();
-          const bVal = (b[sortKey] || "").toLowerCase();
+          const aVal = a[sortKey].toLowerCase();
+          const bVal = b[sortKey].toLowerCase();
           return sortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
         });
       }
-
       list.forEach((s, i) => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td>${escapeHtml(s.title)}</td>
-          <td>${escapeHtml(s.artist)}</td>
-          <td>${escapeHtml(s.genre)}</td>
-          <td>${s.memo ? `<a href="${escapeAttr(s.memo)}" target="_blank" rel="noopener">原曲</a>` : "―"}</td>
+          <td>${s.title}</td>
+          <td>${s.artist}</td>
+          <td>${s.genre}</td>
+          <td>${s.memo ? `<a href="${s.memo}" target="_blank">原曲</a>` : "―"}</td>
           <td>
-            <div class="btns">
-              <button onclick="vote(${i})">リク</button>
-              <button onclick="setNow('${escapeAttr(s.title)}')">今</button>
-              <button onclick="togglePlayer(${i})">▶</button>
-            </div>
+            <button onclick="vote(${i})">リク</button>
+            <button onclick="setNow('${s.title}')">今</button>
+            <button onclick="togglePlayer(${i})">▶</button>
             <div id="yt${i}" style="display:none;">${s.memo ? `<iframe src="${embedURL(s.memo)}" allowfullscreen></iframe>` : ""}</div>
-          </td>
-        `;
+          </td>`;
         tbody.appendChild(tr);
       });
     }
 
-    /* ====== 並び替え ====== */
     function sortTable(key){
-      if (sortKey === key) {
-        sortAsc = !sortAsc;   // 同じ列なら昇降反転
-      } else {
-        sortKey = key;        // 別列ならその列で昇順に
-        sortAsc = true;
-      }
+      sortKey = key;
+      sortAsc = !sortAsc;
       render();
     }
 
-    /* ====== リクエスト（票数カウント＆履歴ふきだし） ====== */
     async function vote(i){
-  if (requestLocked) return alert("受付停止中です");
-
-  const list = getRenderedList(); // 現在表示中の曲リスト
-  const s = list[i];
-  if (!s) return;
-
-  // GASへ送信（POST）
-  await fetch(GAS_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      title: s.title,
-      artist: s.artist,
-      genre: s.genre,
-      ua: navigator.userAgent
-    })
-  }).catch(()=>{});
-
-  // ローカルにも吹き出し追加（LINE風履歴）
-  const div = document.createElement("div");
-  div.className = "bubble " + (i % 2 === 0 ? "left" : "right");
-  div.innerHTML = `<span>${escapeHtml(s.artist)}</span>${escapeHtml(s.title)} をリクエスト！`;
-  document.getElementById("requestHistory").appendChild(div);
-
-  // 最新ランキング取得
-  updateRanking();
-}
-
-
-    // 直近の render() に使った絞り込み＆並び替え済みリストを取得
-    function getRenderedList(){
-      const filter = (document.getElementById("search").value || "").toLowerCase();
-      let list = songs.filter(s =>
-        s.title.toLowerCase().includes(filter) ||
-        s.artist.toLowerCase().includes(filter) ||
-        s.genre.toLowerCase().includes(filter)
-      );
-      if (sortKey) {
-        list.sort((a, b) => {
-          const aVal = (a[sortKey] || "").toLowerCase();
-          const bVal = (b[sortKey] || "").toLowerCase();
-          return sortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-        });
-      }
-      return list;
+      if(requestLocked) return alert("受付停止中です");
+      const list = songs; // 現状のsongs配列を使用（フィルタやソートがある場合は適宜変更）
+      const s = list[i];
+      if (!s) return;
+      await fetch(GAS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: s.title,
+          artist: s.artist,
+          genre: s.genre,
+          ua: navigator.userAgent
+        })
+      }).catch(()=>{});
+      const div = document.createElement("div");
+      div.className = "bubble " + (i % 2 === 0 ? "left" : "right");
+      div.innerHTML = `<span>${s.artist}</span>${s.title} をリクエスト！`;
+      document.getElementById("requestHistory").appendChild(div);
+      updateRanking();
+    }</span>${songs[i].title} をリクエスト！`;
+      document.getElementById("requestHistory").appendChild(div);
     }
 
-    /* ====== 今歌う／セットリスト ====== */
     function setNow(title){
-      document.getElementById("nowSinging").textContent = title || "(未設定)";
+      document.getElementById("nowSinging").textContent = title;
       const li = document.createElement("li");
-      li.textContent = title || "(未設定)";
+      li.textContent = title;
       document.getElementById("setlist").appendChild(li);
     }
 
-    /* ====== ランキング ====== */
-  async function fetchSummary() {
-  const res = await fetch(GAS_URL, { method: 'GET', cache: 'no-store' });
-  const data = await res.json();
-  return Array.isArray(data.rows) ? data.rows : [];
-}
-
-async function updateRanking() {
-  const rows = await fetchSummary();
-  const list = document.getElementById("rankingList");
-  list.innerHTML = "";
-  rows
-    .sort((a,b)=> b.count - a.count)
-    .forEach(row => {
-      const li = document.createElement("li");
-      li.textContent = `${row.title}（${row.artist}） - ${row.count}票`;
-      list.appendChild(li);
-    });
-}
+    async function fetchSummary() {
+      const res = await fetch(GAS_URL, { method: 'GET', cache: 'no-store' });
+      const data = await res.json();
+      return Array.isArray(data.rows) ? data.rows : [];
+    }
+    async function updateRanking() {
+      const rows = await fetchSummary();
+      const list = document.getElementById("rankingList");
+      list.innerHTML = "";
+      rows
+        .sort((a,b)=> b.count - a.count)
+        .forEach(row => {
+          const li = document.createElement("li");
+          li.textContent = `${row.title}（${row.artist}） - ${row.count}票`;
+          list.appendChild(li);
+        });
+    }（${s.artist}） - ${s.votes}票`;
+        list.appendChild(li);
+      });
+    }
 
     function resetVotes(){
-      songs.forEach(s => s.votes = 0);
+      songs.forEach(s=>s.votes=0);
       updateRanking();
     }
 
-    /* ====== リクエスト受付ロック／ランダム ====== */
     function toggleRequestLock(){
       requestLocked = !requestLocked;
-      document.getElementById("lockBtn").textContent = requestLocked
-        ? "🔒 リクエスト受付：OFF" : "🔓 リクエスト受付：ON";
-    }
-    function randomRequest(){
-      const list = getRenderedList();
-      if(list.length === 0) return;
-      const i = Math.floor(Math.random() * list.length);
-      // 表示中リストの i 番目を、元配列の該当曲にマッピングして投票
-      const target = list[i];
-      const idx = songs.findIndex(s => s.title === target.title && s.artist === target.artist && s.genre === target.genre);
-      if (idx >= 0) {
-        songs[idx].votes = (songs[idx].votes || 0) + 1;
-        updateRanking();
-        const div = document.createElement("div");
-        div.className = "bubble " + (idx % 2 === 0 ? "left" : "right");
-        div.innerHTML = `<span>${escapeHtml(songs[idx].artist)}</span>${escapeHtml(songs[idx].title)} をリクエスト！（ランダム）`;
-        document.getElementById("requestHistory").appendChild(div);
-      }
+      document.getElementById("lockBtn").textContent = requestLocked ? "🔒 リクエスト受付：OFF" : "🔓 リクエスト受付：ON";
     }
 
-    /* ====== 履歴リセット ====== */
+    function randomRequest(){
+      if(songs.length === 0) return;
+      const i = Math.floor(Math.random() * songs.length);
+      vote(i);
+    }
+
     function clearRequests(){
       document.getElementById("requestHistory").innerHTML = "";
     }
 
-    /* ====== YouTube 埋め込み折りたたみ ====== */
     function togglePlayer(i){
-      // 表示中リストに基づく id を使う
       const box = document.getElementById("yt"+i);
-      if (!box) return;
-      box.style.display = (box.style.display === "block") ? "none" : "block";
+      box.style.display = box.style.display === "block" ? "none" : "block";
     }
 
-    /* ====== ちょいユーティリティ ====== */
-    function escapeHtml(str=""){
-      return str.replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
-    }
-    function escapeAttr(str=""){
-      return escapeHtml(str).replace(/"/g, "&quot;");
-    }
-
-    /* 起動 */
- oad().then(() => {
-  updateRanking();
-  setInterval(updateRanking, POLL_MS);
-});
+    load().then(() => {
+      updateRanking();
+      setInterval(updateRanking, POLL_MS);
+    });
   </script>
 </body>
 </html>
