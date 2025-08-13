@@ -147,6 +147,7 @@
   <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbwx_0x7nY6i2JOjK8lxxebyPM7ZgZ53ABhdg4IQeAvCNtUDXiU_HfR7Bwlt1veGV-kv/exec";
     const POLL_MS = 10000;
+    const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/12vltAXFRupe5x6nRPo32GMFqInpSiF8bWrV7dB0YTwE/pub?output=csv";
 
     const sheetURL = "https://docs.google.com/spreadsheets/d/12vltAXFRupe5x6nRPo32GMFqInpSiF8bWrV7dB0YTwE/gviz/tq?tqx=out:csv";
     let songs = [], requestLocked = false, sortKey = "", sortAsc = true;
@@ -209,8 +210,8 @@
     }
 
     async function vote(i){
-      if(requestLocked) return alert("受付停止中です");
-      const list = songs; // 現状のsongs配列を使用（フィルタやソートがある場合は適宜変更）
+      if (requestLocked) return alert("受付停止中です");
+      const list = songs;
       const s = list[i];
       if (!s) return;
       await fetch(GAS_URL, {
@@ -232,7 +233,21 @@
       document.getElementById("requestHistory").appendChild(div);
     }
 
-    function setNow(title){
+    
+async function loadSongsFromSheet() {
+  const res = await fetch(SHEET_CSV_URL);
+  const text = await res.text();
+  const rows = text.split("\n").map(r => r.split(","));
+  songs = rows.slice(1).map(r => ({
+    title: r[0]?.trim(),
+    artist: r[1]?.trim(),
+    genre: r[2]?.trim(),
+    memo: r[3]?.trim()
+  }));
+  render();
+}
+
+function setNow(title){
       document.getElementById("nowSinging").textContent = title;
       const li = document.createElement("li");
       li.textContent = title;
@@ -285,10 +300,11 @@
       box.style.display = box.style.display === "block" ? "none" : "block";
     }
 
-    load().then(() => {
+    loadSongsFromSheet().then(() => {
       updateRanking();
       setInterval(updateRanking, POLL_MS);
     });
   </script>
 </body>
 </html>
+
