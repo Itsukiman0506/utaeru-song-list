@@ -235,41 +235,57 @@
 
     
 async function loadSongsFromSheet() {
-  const res = await fetch(SHEET_CSV_URL);
-  const text = await res.text();
+  try {
+    const res = await fetch(SHEET_CSV_URL);
+    const text = await res.text();
 
-  function parseCSV(str) {
-    const rows = [];
-    let current = '', row = [], insideQuotes = false;
-    for (let i = 0; i < str.length; i++) {
-      const char = str[i];
-      if (char === '"') {
-        if (insideQuotes && str[i + 1] === '"') { current += '"'; i++; }
-        else { insideQuotes = !insideQuotes; }
-      } else if (char === ',' && !insideQuotes) {
-        row.push(current);
-        current = '';
-      } else if ((char === '\n' || char === '\r') && !insideQuotes) {
-        if (current || row.length) row.push(current);
-        if (row.length) rows.push(row);
-        current = ''; row = [];
-      } else {
-        current += char;
-      }
+    // デバッグ：レスポンスの先頭部分を表示
+    console.log("=== CSV Fetch Debug ===");
+    console.log("Status:", res.status, res.statusText);
+    console.log("First 200 chars of response:", text.substring(0, 200));
+
+    if (text.trim().startsWith("<")) {
+      console.error("HTML detected instead of CSV. Full response below:");
+      console.error(text);
     }
-    if (current || row.length) row.push(current);
-    if (row.length) rows.push(row);
-    return rows;
-  }
 
-  const rows = parseCSV(text);
-  songs = rows.slice(1).map(r => ({
-    title: r[0]?.trim(),
-    artist: r[1]?.trim(),
-    genre: r[2]?.trim(),
-    memo: r[3]?.trim()
-  }));
-  render();
+    function parseCSV(str) {
+      const rows = [];
+      let current = '', row = [], insideQuotes = false;
+      for (let i = 0; i < str.length; i++) {
+        const char = str[i];
+        if (char === '"') {
+          if (insideQuotes && str[i + 1] === '"') { current += '"'; i++; }
+          else { insideQuotes = !insideQuotes; }
+        } else if (char === ',' && !insideQuotes) {
+          row.push(current);
+          current = '';
+        } else if ((char === '
+' || char === '
+') && !insideQuotes) {
+          if (current || row.length) row.push(current);
+          if (row.length) rows.push(row);
+          current = ''; row = [];
+        } else {
+          current += char;
+        }
+      }
+      if (current || row.length) row.push(current);
+      if (row.length) rows.push(row);
+      return rows;
+    }
+
+    const rows = parseCSV(text);
+    songs = rows.slice(1).map(r => ({
+      title: r[0]?.trim(),
+      artist: r[1]?.trim(),
+      genre: r[2]?.trim(),
+      memo: r[3]?.trim()
+    }));
+    render();
+  } catch (err) {
+    console.error("Error fetching or parsing CSV:", err);
+  }
 }
 
 function setNow(title){
@@ -332,5 +348,3 @@ function setNow(title){
   </script>
 </body>
 </html>
-
-
