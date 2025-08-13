@@ -185,6 +185,8 @@
   </main>
 
   <script>
+const GAS_URL = "https://script.google.com/macros/s/ttps://script.google.com/macros/s/AKfycbwx_0x7nY6i2JOjK8lxxebyPM7ZgZ53ABhdg4IQeAvCNtUDXiU_HfR7Bwlt1veGV-kv/exec";
+const POLL_MS = 10000; // 10秒ごとにランキング更新（お好みで）
     /* ====== 設定 ====== */
     const sheetURL = "https://docs.google.com/spreadsheets/d/12vltAXFRupe5x6nRPo32GMFqInpSiF8bWrV7dB0YTwE/gviz/tq?tqx=out:csv";
 
@@ -275,21 +277,35 @@
     }
 
     /* ====== リクエスト（票数カウント＆履歴ふきだし） ====== */
-    function vote(i){
-      if(requestLocked) return alert("受付停止中です");
-      // 表に表示している list の index と songs の index がズレる可能性があるため、曲名とアーティストで同一曲を検索
-      const target = getRenderedList()[i];
-      const idx = songs.findIndex(s => s.title === target.title && s.artist === target.artist && s.genre === target.genre);
-      if (idx < 0) return;
+    async function vote(i){
+  if (requestLocked) return alert("受付停止中です");
 
-      songs[idx].votes = (songs[idx].votes || 0) + 1;
-      updateRanking();
+  const list = getRenderedList(); // 現在表示中の曲リスト
+  const s = list[i];
+  if (!s) return;
 
-      const div = document.createElement("div");
-      div.className = "bubble " + (idx % 2 === 0 ? "left" : "right");
-      div.innerHTML = `<span>${escapeHtml(songs[idx].artist)}</span>${escapeHtml(songs[idx].title)} をリクエスト！`;
-      document.getElementById("requestHistory").appendChild(div);
-    }
+  // GASへ送信（POST）
+  await fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: s.title,
+      artist: s.artist,
+      genre: s.genre,
+      ua: navigator.userAgent
+    })
+  }).catch(()=>{});
+
+  // ローカルにも吹き出し追加（LINE風履歴）
+  const div = document.createElement("div");
+  div.className = "bubble " + (i % 2 === 0 ? "left" : "right");
+  div.innerHTML = `<span>${escapeHtml(s.artist)}</span>${escapeHtml(s.title)} をリクエスト！`;
+  document.getElementById("requestHistory").appendChild(div);
+
+  // 最新ランキング取得
+  updateRanking();
+}
+
 
     // 直近の render() に使った絞り込み＆並び替え済みリストを取得
     function getRenderedList(){
@@ -318,18 +334,25 @@
     }
 
     /* ====== ランキング ====== */
-    function updateRanking(){
-      const list = document.getElementById("rankingList");
-      list.innerHTML = "";
-      [...songs]
-        .filter(s => (s.votes || 0) > 0)
-        .sort((a,b)=> (b.votes||0) - (a.votes||0))
-        .forEach(s=>{
-          const li = document.createElement("li");
-          li.textContent = `${s.title}（${s.artist}） - ${s.votes}票`;
-          list.appendChild(li);
-        });
-    }
+  async function fetchSummary() {
+  const res = await fetch(GAS_URL, { method: 'GET', cache: 'no-store' });
+  const data = await res.json();
+  return Array.isArray(data.rows) ? data.rows : [];
+}
+
+async function updateRanking() {
+  const rows = await fetchSummary();
+  const list = document.getElementById("rankingList");
+  list.innerHTML = "";
+  rows
+    .sort((a,b)=> b.count - a.count)
+    .forEach(row => {
+      const li = document.createElement("li");
+      li.textContent = `${row.title}（${row.artist}） - ${row.count}票`;
+      list.appendChild(li);
+    });
+}
+
     function resetVotes(){
       songs.forEach(s => s.votes = 0);
       updateRanking();
@@ -380,7 +403,10 @@
     }
 
     /* 起動 */
-    load();
+ oad().then(() => {
+  updateRanking();
+  setInterval(updateRanking, POLL_MS);
+});
   </script>
 </body>
 </html>
