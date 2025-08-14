@@ -1,254 +1,134 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Itsuki UtaーLINE</title>
-  <style>
-    body { margin:0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans JP", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background:#101214; color:#e6e6e6; height:100vh; display:flex; flex-direction:column; }
-    header { background:#06C755; color:#fff; padding:12px 16px; font-weight:700; text-align:center; }
-    .top-bar { position:sticky; top:0; z-index:10; background:#161a1d; border-bottom:1px solid #222; padding:8px 12px; display:flex; gap:8px; align-items:center; justify-content:space-between; }
-    .top-left, .top-right { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .btn { background:#06C755; color:#0b0d0f; border:none; padding:8px 12px; border-radius:999px; cursor:pointer; font-weight:700; }
-    .btn.secondary { background:#24313a; color:#e6e6e6; }
-    .btn:disabled { opacity:.6; cursor:not-allowed; }
-    main { display:flex; flex:1; overflow:hidden; }
-    .left, .right { width:50%; padding:12px; box-sizing:border-box; overflow-y:auto; }
-    input[type="text"] { width:100%; padding:10px 12px; border-radius:12px; border:none; background:#1c2226; color:#e6e6e6; margin-bottom:8px; }
-    table { width:100%; border-collapse:collapse; table-layout:fixed; }
-    th, td { padding:10px; border-bottom:1px solid #222; word-break:break-word; vertical-align:top; }
-    th { position:sticky; top:0; background:#1a2024; cursor:pointer; }
-    .cell-actions { display:flex; flex-wrap:wrap; gap:6px; }
-    iframe { width:100%; height:220px; border:0; border-radius:8px; margin-top:6px; }
-    h3 { margin:12px 0 8px; }
-    ol, ul { margin:0 0 12px 20px; }
-    /* LINE風ふき出し */
-    .bubble { max-width:80%; padding:10px 12px; border-radius:16px; margin:6px 0; line-height:1.45; box-shadow:0 2px 4px rgba(0,0,0,.2); background:#fff; color:#111; }
-    .bubble.right { background:#dcf8c6; margin-left:auto; }
-    .bubble span { display:block; font-weight:700; color:#333; margin-bottom:2px; }
-    @media (max-width: 768px) {
-      main { flex-direction:column; }
-      .left, .right { width:100%; max-height:45vh; }
-      .btn { padding:10px 14px; }
-      iframe { height:190px; }
-      .bubble { max-width:95%; }
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Itsuki UtaーLINE - 簡易版</title>
+<style>
+  body { margin:0; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans JP",sans-serif; background:#101214; color:#e6e6e6; }
+  header { background:#06C755; padding:12px; text-align:center; font-weight:700; font-size:1.2em; }
+  main { display:flex; flex-direction:column; padding:10px; gap:12px; }
+  input[type=text] { padding:8px; border-radius:8px; border:none; width:100%; }
+  table { width:100%; border-collapse:collapse; }
+  th, td { padding:8px; border-bottom:1px solid #333; }
+  th { background:#1a1a1a; cursor:pointer; position:sticky; top:0; }
+  .btn { background:#06C755; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; }
+  iframe { width:100%; height:200px; border:none; margin-top:4px; }
+  @media (max-width: 768px) {
+    iframe { height:160px; }
+  }
+</style>
 </head>
 <body>
-  <header>Itsuki UtaーLINE</header>
-
-  <div class="top-bar">
-    <div class="top-left">
-      <button id="lockBtn" class="btn" onclick="toggleRequestLock()">🔓 リクエスト受付：ON</button>
-      <button class="btn secondary" onclick="randomRequest()">🎲 ランダム</button>
-    </div>
-    <div class="top-right">
-      <strong>🎙️ 今歌っている曲:</strong>&nbsp;<span id="nowSinging">(未設定)</span>
-    </div>
-  </div>
-
-  <main>
-    <section class="left">
-      <input id="search" type="text" placeholder="曲名・アーティスト・ジャンルで検索" oninput="render()"/>
-      <table>
-        <thead>
-          <tr>
-            <th onclick="sortBy('title')">タイトル</th>
-            <th onclick="sortBy('artist')">アーティスト</th>
-            <th onclick="sortBy('genre')">ジャンル</th>
-            <th>原曲</th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody id="songList"></tbody>
-      </table>
-    </section>
-
-    <section class="right">
-      <h3>📈 リクエストランキング</h3>
-      <ol id="rankingList"></ol>
-      <button class="btn secondary" onclick="resetVotes()">ランキングをリセット（GAS側は手動）</button>
-
-      <h3>📅 本日のセットリスト</h3>
-      <ul id="setlist"></ul>
-
-      <h3>🗨️ リクエスト履歴</h3>
-      <div id="requestHistory"></div>
-      <button class="btn secondary" onclick="clearRequests()">履歴をリセット</button>
-    </section>
-  </main>
-
+<header>Itsuki UtaーLINE - 簡易版</header>
+<main>
+  <input type="text" id="search" placeholder="曲名・アーティスト・ジャンルで検索" oninput="render()"/>
+  <button class="btn" onclick="randomSong()">🎲 ランダム</button>
+  <strong>🎙️ 今歌っている曲:</strong> <span id="nowSinging">(未設定)</span>
+  <h3>📅 本日のセットリスト</h3>
+  <ul id="setlist"></ul>
+  <table>
+    <thead>
+      <tr>
+        <th onclick="sortBy('title')">タイトル</th>
+        <th onclick="sortBy('artist')">アーティスト</th>
+        <th onclick="sortBy('genre')">ジャンル</th>
+        <th>原曲</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody id="songList"></tbody>
+  </table>
+</main>
 <script>
-  /* ===== 設定 ===== */
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbzmT5nxtK-SqiZ-Q3ruXzf16RqF1XyPioXO9nOwwxZ81R11r6W6yREd2QOf_JNJUQ/exec";            // あなたの WebアプリURL（/exec）
-  const GAS_SONGS_URL = GAS_URL + "?mode=songs"; // 曲リストJSONを返すエンドポイント（GAS側で実装済み前提）
-  const POLL_MS = 10000;
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSrwBTN0oG3_ELn7Uglv-v7MpLdhYWkRsRg_r01UIesLHPZQlAmPJPbPYcVabE9Hh44eNdnRQBzdQym/pub?gid=0&single=true&output=csv";
+let songs = [];
+let sortKey = "";
+let sortAsc = true;
 
-  /* ===== 状態 ===== */
-  let songs = [];
-  let requestLocked = false;
-  let sortKey = "";
-  let sortAsc = true;
+function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
+function escapeAttr(s) { return escapeHtml(s).replace(/"/g, "&quot;"); }
 
-  /* ===== ユーティリティ ===== */
-  const escapeHtml = (s="") => s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
-  const escapeAttr = (s="") => escapeHtml(s).replace(/"/g, "&quot;");
-  const keyOf = s => [s.title||"", s.artist||"", s.genre||""].join("||");
-  const embedURL = url => {
-    if(!url) return "";
-    let id = "";
-    if (url.includes("youtu.be/")) id = url.split("youtu.be/")[1].split(/[?&]/)[0];
-    else if (url.includes("watch?v=")) id = url.split("watch?v=")[1].split("&")[0];
-    return id ? `https://www.youtube.com/embed/${id}` : "";
-  };
+function embedURL(url) {
+  if (!url) return "";
+  let id = "";
+  if (url.includes("youtu.be/")) id = url.split("youtu.be/")[1].split(/[?&]/)[0];
+  else if (url.includes("watch?v=")) id = url.split("watch?v=")[1].split("&")[0];
+  return id ? `https://www.youtube.com/embed/${id}` : "";
+}
 
-  /* ===== 曲リスト読込（GASから） ===== */
-  async function loadSongsFromGAS() {
-    try {
-      const res = await fetch(GAS_SONGS_URL, { cache:"no-store" });
-      const data = await res.json();
-      if (!Array.isArray(data.rows)) {
-        console.error("GAS songs response invalid:", data);
-        return;
-      }
-      songs = data.rows.map(r => ({
-        title: (r.title||"").trim(),
-        artist: (r.artist||"").trim(),
-        genre: (r.genre||"").trim(),
-        memo: (r.memo||"").trim()
-      })).filter(s => s.title);
-      render();
-    } catch (e) {
-      console.error("GAS songs fetch error:", e);
-    }
-  }
+async function loadSongs() {
+  const res = await fetch(CSV_URL);
+  const text = await res.text();
+  const rows = text.trim().split(/\r?\n/).map(r => r.split(","));
+  songs = rows.slice(1).map(r => ({ title:r[0], artist:r[1], genre:r[2], memo:r[3] }));
+  render();
+}
 
-  /* ===== ランキング（GAS） ===== */
-  async function fetchSummary() {
-    const res = await fetch(GAS_URL, { method: "GET", cache: "no-store" });
-    const data = await res.json();
-    return Array.isArray(data.rows) ? data.rows : [];
-  }
-  async function updateRanking() {
-    const rows = await fetchSummary();
-    const list = document.getElementById("rankingList");
-    list.innerHTML = "";
-    rows.sort((a,b)=>b.count-a.count).forEach(row => {
-      const li = document.createElement("li");
-      li.textContent = `${row.title}（${row.artist}） - ${row.count}票`;
-      list.appendChild(li);
-    });
-  }
-  function resetVotes() {
-    // 注意：GAS側のVotesシートはクリアしないと値は戻りません（このボタンは表示だけリセット）
-    document.getElementById("rankingList").innerHTML = "";
-  }
+function getFilteredSongs() {
+  const q = document.getElementById("search").value.toLowerCase();
+  let list = songs.filter(s => (s.title||"").toLowerCase().includes(q) || (s.artist||"").toLowerCase().includes(q) || (s.genre||"").toLowerCase().includes(q));
+  if (sortKey) list.sort((a,b) => {
+    const av = (a[sortKey]||"").toLowerCase();
+    const bv = (b[sortKey]||"").toLowerCase();
+    return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+  });
+  return list;
+}
 
-  /* ===== 描画 ===== */
-  function getRenderedList() {
-    const q = (document.getElementById("search").value||"").toLowerCase();
-    let list = songs.filter(s => (s.title||"").toLowerCase().includes(q) ||
-                                 (s.artist||"").toLowerCase().includes(q) ||
-                                 (s.genre||"").toLowerCase().includes(q));
-    if (sortKey) {
-      list.sort((a,b) => {
-        const av = (a[sortKey]||"").toLowerCase();
-        const bv = (b[sortKey]||"").toLowerCase();
-        return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
-      });
-    }
-    return list;
-  }
+function render() {
+  const list = getFilteredSongs();
+  const tbody = document.getElementById("songList");
+  tbody.innerHTML = "";
+  list.forEach((s,i) => {
+    const ytId = `yt-${i}`;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(s.title)}</td>
+      <td>${escapeHtml(s.artist)}</td>
+      <td>${escapeHtml(s.genre)}</td>
+      <td>${s.memo ? `<a href="${escapeAttr(s.memo)}" target="_blank">原曲</a>` : "—"}</td>
+      <td>
+        <button class="btn" onclick="setNow('${escapeAttr(s.title)}')">今</button>
+        <button class="btn" onclick="togglePlayer('${ytId}','${escapeAttr(s.memo)}')">▶</button>
+      </td>`;
+    tbody.appendChild(tr);
+    const tr2 = document.createElement("tr");
+    tr2.innerHTML = `<td colspan="5"><div id="${ytId}" style="display:none;"></div></td>`;
+    tbody.appendChild(tr2);
+  });
+}
 
-  function render() {
-    const tbody = document.getElementById("songList");
-    tbody.innerHTML = "";
-    const list = getRenderedList();
-    list.forEach((s, i) => {
-      const key = keyOf(s);
-      const ytId = `yt-${i}`;
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${escapeHtml(s.title)}</td>
-        <td>${escapeHtml(s.artist)}</td>
-        <td>${escapeHtml(s.genre)}</td>
-        <td>${s.memo ? `<a href="${escapeAttr(s.memo)}" target="_blank" rel="noopener">原曲</a>` : "—"}</td>
-        <td>
-          <div class="cell-actions">
-            <button class="btn" onclick="voteByKey('${escapeAttr(key)}')">リク</button>
-            <button class="btn secondary" onclick="setNow('${escapeAttr(s.title)}')">今</button>
-            <button class="btn secondary" onclick="togglePlayer('${ytId}','${escapeAttr(s.memo)}')">▶</button>
-          </div>
-          <div id="${ytId}" style="display:none;"></div>
-        </td>`;
-      tbody.appendChild(tr);
-    });
-  }
+function sortBy(k) {
+  if (sortKey === k) sortAsc = !sortAsc; else { sortKey = k; sortAsc = true; }
+  render();
+}
 
-  function sortBy(k) {
-    if (sortKey === k) sortAsc = !sortAsc; else { sortKey = k; sortAsc = true; }
-    render();
-  }
+function setNow(title) {
+  document.getElementById("nowSinging").textContent = title;
+  const li = document.createElement("li");
+  li.textContent = title;
+  document.getElementById("setlist").appendChild(li);
+}
 
-  /* ===== 操作 ===== */
-  function toggleRequestLock() {
-    requestLocked = !requestLocked;
-    document.getElementById("lockBtn").textContent = requestLocked ? "🔒 リクエスト受付：OFF" : "🔓 リクエスト受付：ON";
-  }
+function randomSong() {
+  const list = getFilteredSongs();
+  if (!list.length) return;
+  const s = list[Math.floor(Math.random()*list.length)];
+  setNow(s.title);
+}
 
-  async function voteByKey(key) {
-    if (requestLocked) return alert("受付停止中です");
-    const s = songs.find(x => keyOf(x) === key);
-    if (!s) return;
-    try {
-      await fetch(GAS_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: s.title, artist: s.artist, genre: s.genre, ua: navigator.userAgent })
-      });
-    } catch(_) {}
-    const div = document.createElement("div");
-    div.className = "bubble right";
-    div.innerHTML = `<span>${escapeHtml(s.artist)}</span>${escapeHtml(s.title)} をリクエスト！`;
-    document.getElementById("requestHistory").appendChild(div);
-    updateRanking();
-  }
+function togglePlayer(id, memo) {
+  const box = document.getElementById(id);
+  if (!box) return;
+  if (box.style.display === "block") { box.style.display = "none"; box.innerHTML = ""; return; }
+  const url = embedURL(memo);
+  if (!url) return;
+  box.style.display = "block";
+  box.innerHTML = `<iframe src="${url}" allowfullscreen></iframe>`;
+}
 
-  function setNow(title) {
-    document.getElementById("nowSinging").textContent = title || "(未設定)";
-    const li = document.createElement("li");
-    li.textContent = title || "(未設定)";
-    document.getElementById("setlist").appendChild(li);
-  }
-
-  function clearRequests() {
-    document.getElementById("requestHistory").innerHTML = "";
-  }
-
-  function randomRequest() {
-    const list = getRenderedList();
-    if (!list.length) return;
-    const s = list[ Math.floor(Math.random()*list.length) ];
-    voteByKey(keyOf(s));
-  }
-
-  function togglePlayer(id, memo) {
-    const box = document.getElementById(id);
-    if (!box) return;
-    if (box.style.display === "block") { box.style.display = "none"; box.innerHTML = ""; return; }
-    const url = embedURL(memo);
-    if (!url) return;
-    box.style.display = "block";
-    box.innerHTML = `<iframe src="${url}" allowfullscreen></iframe>`;
-  }
-
-  /* ===== 起動 ===== */
-  (async () => {
-    await loadSongsFromGAS();
-    await updateRanking();
-    setInterval(updateRanking, POLL_MS);
-  })();
+loadSongs();
 </script>
 </body>
 </html>
